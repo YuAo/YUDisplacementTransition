@@ -1,0 +1,11 @@
+use_frameworks!
+
+target 'YUDisplacementTransition_Example' do
+  pod 'YUDisplacementTransition', :path => '../'
+
+  target 'YUDisplacementTransition_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
