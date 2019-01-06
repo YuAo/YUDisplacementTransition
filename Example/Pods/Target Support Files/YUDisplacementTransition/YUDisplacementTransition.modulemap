@@ -1,0 +1,6 @@
+framework module YUDisplacementTransition {
+  umbrella header "YUDisplacementTransition-umbrella.h"
+
+  export *
+  module * { export * }
+}
