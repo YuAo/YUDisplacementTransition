@@ -11,10 +11,8 @@ Inspired by [hover-effect](https://github.com/robin-dela/hover-effect).
 
 Built with [MetalPetal](https://github.com/MetalPetal/MetalPetal).
 
-<p align="center">
-    <img alt="example 1" src="https://raw.githubusercontent.com/robin-dela/hover-effect/master/gifs/1.gif" width="256">
-    <img alt="example 2" src="https://raw.githubusercontent.com/robin-dela/hover-effect/master/gifs/2.gif" width="256">
-</p>
+![example 1](https://raw.githubusercontent.com/robin-dela/hover-effect/master/gifs/1.gif)
+![example 2](https://raw.githubusercontent.com/robin-dela/hover-effect/master/gifs/2.gif)
 
 ## Example
 
