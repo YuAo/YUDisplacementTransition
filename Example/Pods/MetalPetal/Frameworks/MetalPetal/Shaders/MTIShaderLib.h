@@ -60,14 +60,27 @@ namespace metalpetal {
     } VertexOut;
     
     // GLSL mod func for metal
-    template <typename T, typename _E = typename enable_if<is_same<float, typename make_scalar<T>::type>::value>::type>
+    template <typename T, typename _E = typename enable_if<is_floating_point<typename make_scalar<T>::type>::value>::type>
     METAL_FUNC T mod(T x, T y) {
         return x - y * floor(x/y);
     }
     
-    template <typename T, typename _E = typename enable_if<is_same<float, typename make_scalar<T>::type>::value>::type>
-    METAL_FUNC T sRGBToLinear(T x) {
-        return sign(x)*mix(abs(x)*0.077399380804954, pow(abs(x)*0.947867298578199 + 0.052132701421801, 2.4), step(0.04045, abs(x)));
+    template <typename T, typename _E = typename enable_if<is_floating_point<T>::value>::type>
+    METAL_FUNC T sRGBToLinear(T c) {
+        return (c <= 0.04045f) ? c / 12.92f : powr((c + 0.055f) / 1.055f, 2.4f);
+    }
+    
+    METAL_FUNC float3 sRGBToLinear(float3 c) {
+        return float3(sRGBToLinear(c.r), sRGBToLinear(c.g), sRGBToLinear(c.b));
+    }
+    
+    template <typename T, typename _E = typename enable_if<is_floating_point<T>::value>::type>
+    METAL_FUNC T linearToSRGB(T c) {
+        return (c < 0.0031308f) ? (12.92f * c) : (1.055f * powr(c, 1.f/2.4f) - 0.055f);
+    }
+    
+    METAL_FUNC float3 linearToSRGB(float3 c) {
+        return float3(linearToSRGB(c.r), linearToSRGB(c.g), linearToSRGB(c.b));
     }
     
     METAL_FUNC float4 unpremultiply(float4 s) {
@@ -78,7 +91,8 @@ namespace metalpetal {
         return float4(s.rgb * s.a, s.a);
     }
     
-    METAL_FUNC float hue2rgb(float p, float q, float t){
+    template <typename T, typename _E = typename enable_if<is_floating_point<T>::value>::type>
+    METAL_FUNC T hue2rgb(T p, T q, T t){
         if(t < 0.0) {
             t += 1.0;
         }
@@ -121,6 +135,30 @@ namespace metalpetal {
         return float3(h, s, l);
     }
     
+    METAL_FUNC half3 rgb2hsl(half3 inputColor) {
+        half3 color = saturate(inputColor);
+        
+        //Compute min and max component values
+        half MAX = max(color.r, max(color.g, color.b));
+        half MIN = min(color.r, min(color.g, color.b));
+        
+        //Make sure MAX > MIN to avoid division by zero later
+        MAX = max(MIN + 1e-6h, MAX);
+        
+        //Compute luminosity
+        half l = (MIN + MAX) / 2.0h;
+        
+        //Compute saturation
+        half s = (l < 0.5h ? (MAX - MIN) / (MIN + MAX) : (MAX - MIN) / (2.0h - MAX - MIN));
+        
+        //Compute hue
+        half h = (MAX == color.r ? (color.g - color.b) / (MAX - MIN) : (MAX == color.g ? 2.0h + (color.b - color.r) / (MAX - MIN) : 4.0h + (color.r - color.g) / (MAX - MIN)));
+        h /= 6.0h;
+        h = (h < 0.0h ? 1.0h + h : h);
+        
+        return half3(h, s, l);
+    }
+    
     METAL_FUNC float3 hsl2rgb(float3 inputColor) {
         float3 color = saturate(inputColor);
         
@@ -139,6 +177,26 @@ namespace metalpetal {
             b = hue2rgb(p, q, h - 1.0/3.0);
         }
         return float3(r,g,b);
+    }
+    
+    METAL_FUNC half3 hsl2rgb(half3 inputColor) {
+        half3 color = saturate(inputColor);
+        
+        half h = color.r;
+        half s = color.g;
+        half l = color.b;
+        
+        half r,g,b;
+        if(s <= 0.0h){
+            r = g = b = l;
+        }else{
+            half q = l < 0.5h ? (l * (1.0h + s)) : (l + s - l * s);
+            half p = 2.0h * l - q;
+            r = hue2rgb(p, q, h + 1.0h/3.0h);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1.0h/3.0h);
+        }
+        return half3(r,g,b);
     }
     
     METAL_FUNC float lum(float4 C) {

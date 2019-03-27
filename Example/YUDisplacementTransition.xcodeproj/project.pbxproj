@@ -152,7 +152,7 @@
 					607FACCF1AFB9204008FA782 = {
 						CreatedOnToolsVersion = 6.3.1;
 						DevelopmentTeam = DDPY9JD4B3;
-						LastSwiftMigration = 0900;
+						LastSwiftMigration = 1020;
 					};
 				};
 			};
@@ -161,6 +161,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -194,7 +195,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-YUDisplacementTransition_Example/Pods-YUDisplacementTransition_Example-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-YUDisplacementTransition_Example/Pods-YUDisplacementTransition_Example-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/MetalPetal/MetalPetal.framework",
 				"${BUILT_PRODUCTS_DIR}/YUDisplacementTransition/YUDisplacementTransition.framework",
 			);
@@ -205,7 +206,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-YUDisplacementTransition_Example/Pods-YUDisplacementTransition_Example-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-YUDisplacementTransition_Example/Pods-YUDisplacementTransition_Example-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		CAF1283DC1D8C04700C5C128 /* [CP] Check Pods Manifest.lock */ = {
@@ -373,8 +374,7 @@
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
@@ -390,8 +390,7 @@
 				MODULE_NAME = ExampleApp;
 				PRODUCT_BUNDLE_IDENTIFIER = "org.cocoapods.demo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};

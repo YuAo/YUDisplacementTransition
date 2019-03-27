@@ -14,6 +14,7 @@
 #import "MTIImagePromise.h"
 #import "MTIMemoryWarningObserver.h"
 #import "MTICVMetalTextureBridging.h"
+#import "MTITextureLoader.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -24,22 +25,31 @@ FOUNDATION_EXPORT NSString * const MTIContextDefaultLabel;
 /// Options for creating a MTIContext.
 @interface MTIContextOptions : NSObject <NSCopying>
 
-@property (nonatomic, copy, nullable) NSDictionary<NSString *,id> *coreImageContextOptions;
+@property (nonatomic, copy, nullable) NSDictionary<CIContextOption,id> *coreImageContextOptions;
 
 /// Default pixel format for intermediate textures.
 @property (nonatomic) MTLPixelFormat workingPixelFormat;
 
-/// Whether the render graph optimization is enabled. The default value for this property is YES.
+/// Whether the render graph optimization is enabled. The default value for this property is NO.
 @property (nonatomic) BOOL enablesRenderGraphOptimization;
 
 /// Automatically reclaim resources on memory warning.
 @property (nonatomic) BOOL automaticallyReclaimResources;
+
+/// Whether to enable native support for YCbCr textures. The default value for this property is YES. YCbCr textures can be used when this property is set to YES, and the device supports this feature.
+@property (nonatomic) BOOL enablesYCbCrPixelFormatSupport;
 
 /// A string to help identify this object.
 @property (nonatomic, copy) NSString *label;
 
 /// The built-in metal library URL.
 @property (nonatomic, copy) NSURL *defaultLibraryURL;
+
+/// The texture loader to use. Possible values are MTKTextureLoader.class, MTITextureLoaderForiOS9WithImageOrientationFix.class
+@property (nonatomic) Class<MTITextureLoader> textureLoaderClass;
+
+/// The default value for this property is MTKTextureLoader.class
+@property (nonatomic, class) Class<MTITextureLoader> defaultTextureLoaderClass;
 
 @end
 
@@ -64,13 +74,15 @@ FOUNDATION_EXPORT NSURL * _Nullable MTIDefaultLibraryURLForBundle(NSBundle *bund
 
 @property (nonatomic, readonly) BOOL isMetalPerformanceShadersSupported;
 
+@property (nonatomic, readonly) BOOL isYCbCrPixelFormatSupported;
+
 @property (nonatomic, strong, readonly) id<MTLDevice> device;
 
 @property (nonatomic, strong, readonly) id<MTLLibrary> defaultLibrary;
 
 @property (nonatomic, strong, readonly) id<MTLCommandQueue> commandQueue;
 
-@property (nonatomic, strong, readonly) MTKTextureLoader *textureLoader;
+@property (nonatomic, strong, readonly) id<MTITextureLoader> textureLoader;
 
 @property (nonatomic, strong, readonly) CIContext *coreImageContext;
 

@@ -22,6 +22,8 @@
 #import "MTIRenderPassOutputDescriptor.h"
 #import "MTIImagePromiseDebug.h"
 #import "MTIContext+Internal.h"
+#import "MTIHasher.h"
+#import "MTIError.h"
 
 NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
 
@@ -57,11 +59,11 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
 }
 
 - (NSUInteger)hash {
-    NSUInteger hash = 0;
+    MTIHasher hasher = MTIHasherMake(0);
     for (NSUInteger index = 0; index < _colorAttachmentCount; index += 1) {
-        hash ^= _pixelFormats[index];
+        MTIHasherCombine(&hasher, _pixelFormats[index]);
     }
-    return hash;
+    return MTIHasherFinalize(&hasher);
 }
 
 - (BOOL)isEqual:(id)object {
@@ -69,9 +71,9 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
         return YES;
     }
     MTIRenderPipelineKernelConfiguration *obj = object;
-    if ([obj isKindOfClass:MTIRenderPipelineKernelConfiguration.class] && obj.colorAttachmentCount == _colorAttachmentCount) {
+    if ([obj isKindOfClass:MTIRenderPipelineKernelConfiguration.class] && obj -> _colorAttachmentCount == _colorAttachmentCount) {
         for (NSUInteger index = 0; index < _colorAttachmentCount; index += 1) {
-            if (obj.colorAttachmentPixelFormats[index] != _pixelFormats[index]) {
+            if ((obj -> _pixelFormats)[index] != _pixelFormats[index]) {
                 return NO;
             }
         }
@@ -98,6 +100,8 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
 @implementation MTIRenderPipelineKernel
 
 - (instancetype)initWithVertexFunctionDescriptor:(MTIFunctionDescriptor *)vertexFunctionDescriptor fragmentFunctionDescriptor:(MTIFunctionDescriptor *)fragmentFunctionDescriptor {
+    NSParameterAssert(vertexFunctionDescriptor);
+    NSParameterAssert(fragmentFunctionDescriptor);
     return [self initWithVertexFunctionDescriptor:vertexFunctionDescriptor
                        fragmentFunctionDescriptor:fragmentFunctionDescriptor
                                  vertexDescriptor:nil
@@ -107,6 +111,8 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
 
 - (instancetype)initWithVertexFunctionDescriptor:(MTIFunctionDescriptor *)vertexFunctionDescriptor fragmentFunctionDescriptor:(MTIFunctionDescriptor *)fragmentFunctionDescriptor vertexDescriptor:(MTLVertexDescriptor *)vertexDescriptor colorAttachmentCount:(NSUInteger)colorAttachmentCount alphaTypeHandlingRule:(nonnull MTIAlphaTypeHandlingRule *)alphaTypeHandlingRule {
     if (self = [super init]) {
+        NSParameterAssert(vertexFunctionDescriptor);
+        NSParameterAssert(fragmentFunctionDescriptor);
         _vertexFunctionDescriptor = [vertexFunctionDescriptor copy];
         _fragmentFunctionDescriptor = [fragmentFunctionDescriptor copy];
         _vertexDescriptor = [vertexDescriptor copy];
@@ -216,10 +222,8 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
         MTLPixelFormat pixelFormat = pixelFormats[index];
         
         MTIRenderPassOutputDescriptor *outputDescriptor = self.outputDescriptors[index];
-        MTLTextureDescriptor *textureDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:pixelFormat width:outputDescriptor.dimensions.width height:outputDescriptor.dimensions.height mipmapped:NO];
-        textureDescriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-        
-        MTIImagePromiseRenderTarget *renderTarget = [renderingContext.context newRenderTargetWithResuableTextureDescriptor:[textureDescriptor newMTITextureDescriptor] error:&error];
+        MTITextureDescriptor *textureDescriptor = [MTITextureDescriptor texture2DDescriptorWithPixelFormat:pixelFormat width:outputDescriptor.dimensions.width height:outputDescriptor.dimensions.height usage:MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead];
+        MTIImagePromiseRenderTarget *renderTarget = [renderingContext.context newRenderTargetWithResuableTextureDescriptor:textureDescriptor error:&error];
         if (error) {
             if (inOutError) {
                 *inOutError = error;
@@ -228,7 +232,7 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
         }
         
         renderPassDescriptor.colorAttachments[index].texture = renderTarget.texture;
-        renderPassDescriptor.colorAttachments[index].clearColor = MTLClearColorMake(0, 0, 0, 0);
+        renderPassDescriptor.colorAttachments[index].clearColor = outputDescriptor.clearColor;
         renderPassDescriptor.colorAttachments[index].loadAction = outputDescriptor.loadAction;
         renderPassDescriptor.colorAttachments[index].storeAction = outputDescriptor.storeAction;
         
@@ -236,6 +240,13 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
     }
     
     id<MTLRenderCommandEncoder> commandEncoder = [renderingContext.commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    
+    if (!commandEncoder) {
+        if (inOutError) {
+            *inOutError = MTIErrorCreate(MTIErrorFailedToCreateCommandEncoder, nil);
+        }
+        return nil;
+    }
     
     NSUInteger resolutionIndex = 0;
     
@@ -252,16 +263,6 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
         }
         
         [commandEncoder setRenderPipelineState:renderPipeline.state];
-        
-        if (command.geometry.bufferLength > 0) {
-            if (command.geometry.bufferLength < 4096) {
-                //The setVertexBytes:length:atIndex: method is the best option for binding a very small amount (less than 4 KB) of dynamic buffer data to a vertex function. This method avoids the overhead of creating an intermediary MTLBuffer object. Instead, Metal manages a transient buffer for you.
-                [commandEncoder setVertexBytes:command.geometry.bufferBytes length:command.geometry.bufferLength atIndex:0];
-            } else {
-                id<MTLBuffer> buffer = [renderingContext.context.device newBufferWithBytes:command.geometry.bufferBytes length:command.geometry.bufferLength options:0];
-                [commandEncoder setVertexBuffer:buffer offset:0 atIndex:0];
-            }
-        }
         
         id<MTLSamplerState> samplerStates[command.images.count];
         for (NSUInteger index = 0; index < command.images.count; index += 1) {
@@ -317,7 +318,7 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
             }
         }
         
-        [commandEncoder drawPrimitives:command.geometry.primitiveType vertexStart:0 vertexCount:command.geometry.vertexCount];
+        [command.geometry encodeDrawCallWithCommandEncoder:commandEncoder context:renderPipeline];
     }
     
     [commandEncoder endEncoding];
@@ -335,11 +336,17 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
         NSParameterAssert(renderCommands.count > 0);
         _renderCommands = [renderCommands copy];
         _outputDescriptors = [outputDescriptors copy];
-        NSMutableArray<MTIImage *> *dependencies = [NSMutableArray array];
-        for (MTIRenderCommand *command in renderCommands) {
-            [dependencies addObjectsFromArray:command.images];
+        if (renderCommands.count == 0) {
+            _dependencies = @[];
+        } else if (renderCommands.count == 1) {
+            _dependencies = renderCommands.firstObject.images;
+        } else {
+            NSMutableArray<MTIImage *> *dependencies = [NSMutableArray array];
+            for (MTIRenderCommand *command in renderCommands) {
+                [dependencies addObjectsFromArray:command.images];
+            }
+            _dependencies = [dependencies copy];
         }
-        _dependencies = [dependencies copy];
         _alphaType = [renderCommands.lastObject.kernel.alphaTypeHandlingRule outputAlphaTypeForInputImages:renderCommands.lastObject.images];
         if (outputDescriptors.count > 1) {
             _resolutionCache = [[MTIWeakToStrongObjectsMapTable alloc] init];
@@ -472,12 +479,19 @@ NSUInteger const MTIRenderPipelineMaximumColorAttachmentCount = 8;
 + (NSArray<MTIImage *> *)imagesByPerformingRenderCommands:(NSArray<MTIRenderCommand *> *)renderCommands outputDescriptors:(NSArray<MTIRenderPassOutputDescriptor *> *)outputDescriptors {
     MTIImageRenderingRecipe *recipe = [[MTIImageRenderingRecipe alloc] initWithRenderCommands:renderCommands
                                                                             outputDescriptors:outputDescriptors];
-    NSMutableArray *outputs = [NSMutableArray array];
-    for (NSUInteger index = 0; index < outputDescriptors.count; index += 1) {
-        MTIImageRenderingPromise *promise = [[MTIImageRenderingPromise alloc] initWithImageRenderingRecipe:recipe outputIndex:index];
-        [outputs addObject:[[MTIImage alloc] initWithPromise:promise]];
+    if (outputDescriptors.count == 0) {
+        return @[];
+    } else if (outputDescriptors.count == 1) {
+        MTIImageRenderingPromise *promise = [[MTIImageRenderingPromise alloc] initWithImageRenderingRecipe:recipe outputIndex:0];
+        return @[[[MTIImage alloc] initWithPromise:promise]];
+    } else {
+        NSMutableArray *outputs = [NSMutableArray array];
+        for (NSUInteger index = 0; index < outputDescriptors.count; index += 1) {
+            MTIImageRenderingPromise *promise = [[MTIImageRenderingPromise alloc] initWithImageRenderingRecipe:recipe outputIndex:index];
+            [outputs addObject:[[MTIImage alloc] initWithPromise:promise]];
+        }
+        return outputs;
     }
-    return outputs;
 }
 
 @end

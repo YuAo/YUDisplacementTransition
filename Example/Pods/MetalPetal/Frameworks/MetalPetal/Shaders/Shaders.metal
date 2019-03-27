@@ -38,7 +38,17 @@ namespace metalpetal {
         float4 textureColor = colorTexture.sample(colorSampler, vertexIn.textureCoordinate);
         return unpremultiply(textureColor);
     }
-
+    
+    fragment float4 unpremultiplyAlphaWithSRGBToLinearRGB(
+                                       VertexOut vertexIn [[ stage_in ]],
+                                       texture2d<float, access::sample> colorTexture [[ texture(0) ]],
+                                       sampler colorSampler [[ sampler(0) ]]
+                                       ) {
+        float4 textureColor = colorTexture.sample(colorSampler, vertexIn.textureCoordinate);
+        textureColor = unpremultiply(textureColor);
+        return float4(sRGBToLinear(textureColor.rgb), textureColor.a);
+    }
+    
     typedef struct {
         float4 color [[color(1)]];
     } ColorAttachmentOneOutput;
@@ -71,6 +81,22 @@ namespace metalpetal {
                                        ) {
         float4 textureColor = colorTexture.sample(colorSampler, vertexIn.textureCoordinate);
         return premultiply(textureColor);
+    }
+    
+    fragment float4 convertSRGBToLinearRGB(VertexOut vertexIn [[ stage_in ]],
+                                 texture2d<float, access::sample> colorTexture [[ texture(0) ]],
+                                 sampler colorSampler [[ sampler(0) ]]) {
+        float4 textureColor = colorTexture.sample(colorSampler, vertexIn.textureCoordinate);
+        textureColor.rgb = sRGBToLinear(textureColor.rgb);
+        return textureColor;
+    }
+    
+    fragment float4 convertLinearRGBToSRGB(VertexOut vertexIn [[ stage_in ]],
+                                 texture2d<float, access::sample> colorTexture [[ texture(0) ]],
+                                 sampler colorSampler [[ sampler(0) ]]) {
+        float4 textureColor = colorTexture.sample(colorSampler, vertexIn.textureCoordinate);
+        textureColor.rgb = linearToSRGB(textureColor.rgb);
+        return textureColor;
     }
 
     fragment float4 colorMatrixProjection(
@@ -121,10 +147,34 @@ namespace metalpetal {
                                                        ) {
         float intensity = 1.0;
         if (parameters.hasCompositingMask) {
-            intensity *= maskColor.r;
+            intensity *= maskColor[parameters.compositingMaskComponent];
         }
         intensity *= parameters.opacity;
         return colorLookup2DSquareLUT(currentColor,64,intensity,colorTexture,colorSampler);
+    }
+    
+    #else
+    
+    fragment float4 multilayerCompositeColorLookup512x512Blend(
+                                                               VertexOut vertexIn [[ stage_in ]],
+                                                               texture2d<float, access::sample> backgroundTexture [[ texture(1) ]],
+                                                               texture2d<float, access::sample> maskTexture [[ texture(2) ]],
+                                                               constant MTIMultilayerCompositingLayerShadingParameters & parameters [[buffer(0)]],
+                                                               texture2d<float, access::sample> colorTexture [[ texture(0) ]],
+                                                               sampler colorSampler [[ sampler(0) ]],
+                                                               constant float2 & viewportSize [[buffer(1)]]
+                                                               ) {
+        constexpr sampler s(coord::normalized, address::clamp_to_zero, filter::linear);
+        float2 location = vertexIn.position.xy / viewportSize;
+        float4 backgroundColor = backgroundTexture.sample(s, location);
+        float intensity = 1.0;
+        if (parameters.hasCompositingMask) {
+            float4 maskColor = maskTexture.sample(s, location);
+            float maskValue = maskColor[parameters.compositingMaskComponent];
+            intensity *= maskValue;
+        }
+        intensity *= parameters.opacity;
+        return colorLookup2DSquareLUT(backgroundColor,64,intensity,colorTexture,colorSampler);
     }
     
     #endif
@@ -173,7 +223,8 @@ namespace metalpetal {
         float4 maskColor = maskTexture.sample(maskSampler, vertexIn.textureCoordinate);
         float maskValue = maskColor[maskComponent];
         float4 baseColor = baseTexture.sample(baseSampler, vertexIn.textureCoordinate);
-        return mix(baseColor, overlayColor, usesOneMinusMaskValue ? (1.0 - maskValue) : maskValue);
+        overlayColor.a = overlayColor.a * (usesOneMinusMaskValue ? (1.0 - maskValue) : maskValue);
+        return normalBlend(baseColor, overlayColor);
     }
 
     fragment float4 vibranceAdjust(
@@ -424,6 +475,32 @@ namespace metalpetal {
         //return float4(float3(value.rgb)/float3(maxValue.rgb), 1.0);
     }
     */
+    
+    fragment float4 bulgeDistortion(VertexOut vertexIn [[stage_in]],
+                                    texture2d<float, access::sample> sourceTexture [[texture(0)]],
+                                    sampler sourceSampler [[sampler(0)]],
+                                    constant float & scale [[ buffer(0) ]],
+                                    constant float & radius [[ buffer(1) ]],
+                                    constant float2 & center [[ buffer(2) ]]) {
+        float2 textureSize = float2(sourceTexture.get_width(), sourceTexture.get_height());
+        float2 textureCoordinate = vertexIn.textureCoordinate;
+        
+        float2 texturePixelCoordinate = textureCoordinate * textureSize;
+        float dist = distance(texturePixelCoordinate, center);
+        
+        if (dist < radius) {
+            texturePixelCoordinate -= center;
+            float percent = 1.0 - ((radius - dist) / radius) * scale;
+            percent = percent * percent;
+            
+            texturePixelCoordinate = texturePixelCoordinate * percent;
+            texturePixelCoordinate += center;
+            
+            textureCoordinate = texturePixelCoordinate / textureSize;
+        }
+        
+        return sourceTexture.sample(sourceSampler, textureCoordinate);
+    }
     
     namespace definition {
         

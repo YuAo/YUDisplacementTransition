@@ -3,6 +3,7 @@
 
 #import <MetalPetal/MTIComputePipeline.h>
 #import <MetalPetal/MTIMPSBoxBlurFilter.h>
+#import <MetalPetal/MTIBulgeDistortionFilter.h>
 #import <MetalPetal/MTIMPSConvolutionFilter.h>
 #import <MetalPetal/MTIMPSDefinitionFilter.h>
 #import <MetalPetal/MTIColorMatrixFilter.h>
@@ -18,6 +19,7 @@
 #import <MetalPetal/MTIPixellateFilter.h>
 #import <MetalPetal/MTIMPSGaussianBlurFilter.h>
 #import <MetalPetal/MTIColorHalftoneFilter.h>
+#import <MetalPetal/MTIRGBColorSpaceConversionFilter.h>
 #import <MetalPetal/MTIAlphaPremultiplicationFilter.h>
 #import <MetalPetal/MTIDotScreenFilter.h>
 #import <MetalPetal/MTIMPSUnsharpMaskFilter.h>
@@ -41,6 +43,7 @@
 #import <MetalPetal/MTIVector.h>
 #import <MetalPetal/MTICVPixelBufferRendering.h>
 #import <MetalPetal/MTIImageOrientation.h>
+#import <MetalPetal/MTITextureLoader.h>
 #import <MetalPetal/MTIWeakToStrongObjectsMapTable.h>
 #import <MetalPetal/MTIRenderGraphOptimization.h>
 #import <MetalPetal/MTIMemoryWarningObserver.h>
@@ -49,12 +52,15 @@
 #import <MetalPetal/MTIMask.h>
 #import <MetalPetal/MTIBlendModes.h>
 #import <MetalPetal/MTIGeometry.h>
+#import <MetalPetal/MTIBuffer.h>
 #import <MetalPetal/MTITextureDescriptor.h>
 #import <MetalPetal/MTIImage.h>
 #import <MetalPetal/MTIDrawableRendering.h>
 #import <MetalPetal/MTIContext.h>
+#import <MetalPetal/MTISCNSceneRenderer.h>
 #import <MetalPetal/MTILock.h>
 #import <MetalPetal/MTICVMetalTextureCache.h>
+#import <MetalPetal/MTITextureLoaderForiOS9.h>
 #import <MetalPetal/MTIAlphaType.h>
 #import <MetalPetal/MTICVPixelBufferPool.h>
 #import <MetalPetal/MTITransform.h>
@@ -75,7 +81,6 @@
 #import <MetalPetal/MTIPixelFormat.h>
 #import <MetalPetal/MTIColor.h>
 #import <MetalPetal/MTIRenderPipeline.h>
-#import <MetalPetal/MTKTextureLoaderExtensions.h>
 #import <MetalPetal/MTISamplerDescriptor.h>
 #import <MetalPetal/MTILayer.h>
 #import <MetalPetal/MTICVMetalTextureBridging.h>

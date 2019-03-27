@@ -14,17 +14,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/*! @brief Rendering context related constant for MTIContextPromiseAssociatedValueTableName. */
-FOUNDATION_EXPORT NSString * const MTIContextPromiseRenderTargetTableName;
-
 /*! @brief Rendering context related constant for MTIContextImageAssociatedValueTableName. */
 FOUNDATION_EXPORT NSString * const MTIContextImagePersistentResolutionHolderTableName;
-
-@interface MTIImageRenderingDependencyGraph : NSObject
-
-- (NSInteger)dependentCountForPromise:(id<MTIImagePromise>)promise;
-
-@end
 
 @protocol MTIImagePromiseResolution <NSObject>
 
@@ -50,13 +41,16 @@ FOUNDATION_EXPORT NSString * const MTIContextImagePersistentResolutionHolderTabl
 
 @end
 
-@interface MTIImageBuffer : NSObject
+NS_ASSUME_NONNULL_END
 
-- (instancetype)init NS_UNAVAILABLE;
 
-+ (instancetype)new NS_UNAVAILABLE;
+#import "MTIContext.h"
 
-+ (nullable MTIImage *)renderedBufferForImage:(MTIImage *)targetImage inContext:(MTIContext *)context;
+NS_ASSUME_NONNULL_BEGIN
+
+@interface MTIContext (RenderedImageBuffer)
+
+- (nullable MTIImage *)renderedBufferForImage:(MTIImage *)targetImage;
 
 @end
 

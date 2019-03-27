@@ -189,18 +189,32 @@
 - (void)drawInMTKView:(MTKView *)view {
     @autoreleasepool {
         if (!self.isHidden && self.alpha > 0) {
-            MTIImage *imageToRender = _image;
-            if (!imageToRender) {
-                imageToRender = [MTIImage transparentImage];
+            MTIContext *context = _context;
+            NSAssert(context != nil, @"Context is nil.");
+            if (!context) {
+                return;
             }
-            NSAssert(_context != nil, @"Context is nil.");
-            MTIDrawableRenderingRequest *request = [[MTIDrawableRenderingRequest alloc] init];
-            request.drawableProvider = _renderView;
-            request.resizingMode = _resizingMode;
-            NSError *error;
-            [_context renderImage:imageToRender toDrawableWithRequest:request error:&error];
-            if (error) {
-                MTIPrint(@"%@: Failed to render image %@ - %@",self,imageToRender,error);
+            MTIImage *imageToRender = _image;
+            if (imageToRender) {
+                MTIDrawableRenderingRequest *request = [[MTIDrawableRenderingRequest alloc] init];
+                request.drawableProvider = view;
+                request.resizingMode = _resizingMode;
+                NSError *error;
+                [context renderImage:imageToRender toDrawableWithRequest:request error:&error];
+                if (error) {
+                    MTIPrint(@"%@: Failed to render image %@ - %@",self,imageToRender,error);
+                }
+            } else {
+                //Clear current drawable.
+                MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
+                id<MTLDrawable> drawable = view.currentDrawable;
+                if (renderPassDescriptor && drawable) {
+                    id<MTLCommandBuffer> commandBuffer = [context.commandQueue commandBuffer];
+                    id<MTLRenderCommandEncoder> commandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+                    [commandEncoder endEncoding];
+                    [commandBuffer presentDrawable:drawable];
+                    [commandBuffer commit];
+                }
             }
         }
     }

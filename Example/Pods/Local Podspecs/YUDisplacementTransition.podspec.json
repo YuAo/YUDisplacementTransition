@@ -1,8 +1,8 @@
 {
   "name": "YUDisplacementTransition",
   "version": "0.1.0",
-  "summary": "A short description of YUDisplacementTransition.",
-  "description": "TODO: Add long description of the pod here.",
+  "summary": "A GPU accelerated displacement transition library.",
+  "description": "A GPU accelerated transition library which makes use of displacement maps to create distortion effects.",
   "homepage": "https://github.com/yuao/YUDisplacementTransition",
   "license": {
     "type": "MIT",
@@ -24,5 +24,5 @@
 
     ]
   },
-  "swift_version": "4.2"
+  "swift_versions": "5.0"
 }

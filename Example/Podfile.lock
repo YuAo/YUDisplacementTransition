@@ -1,6 +1,6 @@
 PODS:
-  - MetalPetal/Core (1.0.4)
-  - MetalPetal/Swift (1.0.4):
+  - MetalPetal/Core (1.4.0)
+  - MetalPetal/Swift (1.4.0):
     - MetalPetal/Core
   - YUDisplacementTransition (0.1.0):
     - MetalPetal/Swift
@@ -17,9 +17,9 @@ EXTERNAL SOURCES:
     :path: "../"
 
 SPEC CHECKSUMS:
-  MetalPetal: 5eecb72ad346d529bc11fe597eb20563f7564bcc
-  YUDisplacementTransition: 2cc5e1b133447c208f0c55166247e03b9d91d442
+  MetalPetal: 92eea965b9b2f0c677d82618c2e78fa7e4347846
+  YUDisplacementTransition: 2b2c7790b4a6b342166331bdfef226d63f2f9a8f
 
 PODFILE CHECKSUM: 6a9d438d0b2d405a11103cdbe12a373658fe074f
 
-COCOAPODS: 1.5.3
+COCOAPODS: 1.7.0.beta.2
